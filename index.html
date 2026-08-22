@@ -1,65 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Brown Tree Snake AR</title>
-  <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: Arial, sans-serif; background:#000; }
-    #hint { position: fixed; z-index: 10; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.65); color:#fff; padding:10px 14px; border-radius:10px; text-align:center; font-size:14px; max-width:86%; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+    }
+
+    #videoScreen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      background: black;
+      z-index: 99999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #snakeVideo {
+      width: 100vw;
+      height: 100dvh;
+      object-fit: contain;
+      background: black;
+    }
+
+    #closeButton {
+      position: fixed;
+      top: max(18px, env(safe-area-inset-top));
+      right: 18px;
+      z-index: 100000;
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(0,0,0,.65);
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+    }
   </style>
 </head>
+
 <body>
-  <div id="hint">Allow camera access, then point your phone at the brown tree snake image.</div>
+
+  <div id="videoScreen">
+    <video
+      id="snakeVideo"
+      src="./snake.mp4"
+      playsinline
+      webkit-playsinline
+      preload="auto">
+    </video>
+
+    <button id="closeButton">×</button>
+  </div>
 
   <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF: 0.0001; filterBeta: 0.01;"
-    color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
+    mindar-image="imageTargetSrc: ./targets.mind;"
+    embedded
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <a-assets>
-      <video id="snakeVideo" src="./snake.mp4" preload="auto" loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>
-    </a-assets>
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-entity id="snakeTarget" mindar-image-target="targetIndex: 0"></a-entity>
 
-    <a-entity id="snakeTarget" mindar-image-target="targetIndex: 0">
-      <a-video
-        src="#snakeVideo"
-        position="0 0 0.02"
-        width="3.2"
-        height="1.8"
-        rotation="0 0 0">
-      </a-video>
-    </a-entity>
   </a-scene>
 
   <script>
-    const video = document.querySelector('#snakeVideo');
-    const target = document.querySelector('#snakeTarget');
-    const hint = document.querySelector('#hint');
+    const target = document.querySelector("#snakeTarget");
+    const videoScreen = document.querySelector("#videoScreen");
+    const video = document.querySelector("#snakeVideo");
+    const closeButton = document.querySelector("#closeButton");
 
-    target.addEventListener('targetFound', async () => {
-      hint.textContent = 'INVASIVE SPECIES DETECTED';
+    let launched = false;
+
+    target.addEventListener("targetFound", async () => {
+      if (launched) return;
+      launched = true;
+
+      videoScreen.style.display = "flex";
+
       try {
         video.currentTime = 0;
         await video.play();
-      } catch (e) {
-        hint.textContent = 'Tap the screen once, then point back at the snake.';
+
+        // Ask the browser for true fullscreen where supported.
+        if (video.requestFullscreen) {
+          await video.requestFullscreen();
+        } else if (video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        }
+      } catch (error) {
+        console.log("Fullscreen/autoplay restricted:", error);
       }
     });
 
-    target.addEventListener('targetLost', () => {
-      video.pause();
-      video.currentTime = 0;
-      hint.textContent = 'Point your phone at the brown tree snake image.';
+    video.addEventListener("ended", () => {
+      videoScreen.style.display = "none";
+      launched = false;
     });
 
-    document.body.addEventListener('click', () => video.play().catch(() => {}), { once: true });
+    closeButton.addEventListener("click", () => {
+      video.pause();
+      video.currentTime = 0;
+      videoScreen.style.display = "none";
+      launched = false;
+
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      }
+    });
   </script>
+
 </body>
 </html>
