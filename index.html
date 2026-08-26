@@ -29,7 +29,7 @@
       justify-content: center;
     }
 
-    #snakeVideo {
+    #arVideo {
       width: 100vw;
       height: 100dvh;
       object-fit: contain;
@@ -57,8 +57,7 @@
 
   <div id="videoScreen">
     <video
-      id="snakeVideo"
-      src="./snake.mp4?v=2"
+      id="arVideo"
       playsinline
       webkit-playsinline
       preload="auto">
@@ -78,29 +77,46 @@
       look-controls="enabled: false">
     </a-camera>
 
-    <a-entity id="snakeTarget" mindar-image-target="targetIndex: 0"></a-entity>
+    <a-entity id="snakeTarget"
+              mindar-image-target="targetIndex: 0">
+    </a-entity>
+
+    <a-entity id="beetleTarget"
+              mindar-image-target="targetIndex: 1">
+    </a-entity>
+
+    <a-entity id="henryTarget"
+              mindar-image-target="targetIndex: 2">
+    </a-entity>
 
   </a-scene>
 
   <script>
-    const target = document.querySelector("#snakeTarget");
+    const snakeTarget = document.querySelector("#snakeTarget");
+    const beetleTarget = document.querySelector("#beetleTarget");
+    const henryTarget = document.querySelector("#henryTarget");
+
     const videoScreen = document.querySelector("#videoScreen");
-    const video = document.querySelector("#snakeVideo");
+    const video = document.querySelector("#arVideo");
     const closeButton = document.querySelector("#closeButton");
 
     let launched = false;
 
-    target.addEventListener("targetFound", async () => {
+    async function playARVideo(filename) {
       if (launched) return;
+
       launched = true;
+
+      video.pause();
+      video.src = filename;
+      video.load();
+      video.currentTime = 0;
 
       videoScreen.style.display = "flex";
 
       try {
-        video.currentTime = 0;
         await video.play();
 
-        // Ask the browser for true fullscreen where supported.
         if (video.requestFullscreen) {
           await video.requestFullscreen();
         } else if (video.webkitEnterFullscreen) {
@@ -109,21 +125,41 @@
       } catch (error) {
         console.log("Fullscreen/autoplay restricted:", error);
       }
+    }
+
+    snakeTarget.addEventListener("targetFound", () => {
+      playARVideo("./snake.mp4?v=3");
+    });
+
+    beetleTarget.addEventListener("targetFound", () => {
+      playARVideo("./beetle.mp4?v=1");
+    });
+
+    henryTarget.addEventListener("targetFound", () => {
+      playARVideo("./henry.mp4?v=1");
     });
 
     video.addEventListener("ended", () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
       videoScreen.style.display = "none";
       launched = false;
     });
 
-    closeButton.addEventListener("click", () => {
+    closeButton.addEventListener("click", async () => {
       video.pause();
       video.currentTime = 0;
+      video.removeAttribute("src");
+      video.load();
+
       videoScreen.style.display = "none";
       launched = false;
 
       if (document.fullscreenElement) {
-        document.exitFullscreen();
+        try {
+          await document.exitFullscreen();
+        } catch (error) {}
       }
     });
   </script>
